@@ -2,6 +2,8 @@
 // File ini berisi fungsi-fungsi khusus untuk halaman dashboard
 
 // Auto refresh dashboard setiap 30 detik
+const API_URL = 'https://bank-fe-eight.vercel.app';
+
 let autoRefreshInterval;
 
 function startAutoRefresh() {
@@ -19,22 +21,39 @@ function stopAutoRefresh() {
 // Load data dashboard
 async function loadDashboardData() {
     try {
-        const response = await fetch('php/get_user.php');
-        const result = await response.json();
-
-        if (result.success) {
-            updateDashboard(result.data);
-        } else {
-            if (result.message.includes('login')) {
-                window.location.href = 'login.html';
-            } else {
-                console.error('Error loading dashboard:', result.message);
-            }
+      const token = localStorage.getItem('access_token');
+  
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+  
+      const response = await fetch(`${API_URL}/api/dashboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
+      });
+  
+      const result = await response.json();
+  
+      if (result.success) {
+        updateDashboard({
+          user: result.user,
+          stats: {
+            total_transaksi: result.history.length,
+            total_berat: result.history.reduce((a, b) => a + b.berat, 0),
+            total_pendapatan: result.user.saldo
+          },
+          history: result.history
+        });
+      } else {
+        window.location.href = 'login.html';
+      }
     } catch (error) {
-        console.error('Error:', error);
+      console.error('Error:', error);
     }
-}
+  }
+  
 
 // Update semua elemen dashboard
 function updateDashboard(data) {
@@ -194,9 +213,11 @@ function loadDarkModePreference() {
 // Konfirmasi sebelum logout
 function confirmLogout() {
     if (confirm('Apakah Anda yakin ingin keluar?')) {
-        window.location.href = 'php/logout.php';
+      localStorage.removeItem('access_token');
+      window.location.href = 'login.html';
     }
-}
+  }
+  
 
 // Search/filter transaksi
 function filterTransactions(searchTerm) {
@@ -224,17 +245,25 @@ function copyToClipboard(text) {
 // Get statistics untuk periode tertentu
 async function getStatsByPeriod(startDate, endDate) {
     try {
-        const response = await fetch(`php/get_stats.php?start=${startDate}&end=${endDate}`);
-        const result = await response.json();
-        
-        if (result.success) {
-            return result.data;
+      const token = localStorage.getItem('access_token');
+  
+      const response = await fetch(
+        `${API_URL}/api/dashboard?start=${startDate}&end=${endDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
+      );
+  
+      const result = await response.json();
+      if (result.success) return result;
     } catch (error) {
-        console.error('Error fetching stats:', error);
+      console.error(error);
     }
     return null;
-}
+  }
+  
 
 // Initialize dashboard saat DOM loaded
 document.addEventListener('DOMContentLoaded', () => {
