@@ -82,7 +82,7 @@
     // Memuat saldo awal dari dashboard
     async function loadSaldo() {
         try {
-            const res = await fetch('https://bank-fe-eight.vercel.app/api/dashboard', {
+            const res = await fetch('https://bank-n0zpq3yka-ramas-projects-445d0d4a.vercel.app/api/dashboard', {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             const data = await res.json();
@@ -114,7 +114,7 @@
     
         try {
             // Gunakan URL yang sesuai dengan route backend
-            const res = await fetch('https://bank-fe-eight.vercel.app/api/tarik', {
+            const res = await fetch('https://bank-n0zpq3yka-ramas-projects-445d0d4a.vercel.app/api/tarik', {
                 method: 'POST',
                 headers: { 
                     'Authorization': 'Bearer ' + token, 
