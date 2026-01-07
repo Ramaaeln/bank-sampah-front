@@ -84,7 +84,7 @@
 
     async function loadSampah() {
     try {
-        const res = await fetch('hhttps://bank-n0zpq3yka-ramas-projects-445d0d4a.vercel.app/api/sampah', {
+        const res = await fetch('https://bank-fe-eight.vercel.app/api/sampah', {
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
         });
         const data = await res.json();
@@ -138,7 +138,7 @@
 
         const formData = new FormData(transaksiForm);
         try {
-            const res = await fetch('hhttps://bank-n0zpq3yka-ramas-projects-445d0d4a.vercel.app/api/transaksi', {
+            const res = await fetch('https://bank-fe-eight.vercel.app/api/transaksi', {
                 method:'POST',
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
