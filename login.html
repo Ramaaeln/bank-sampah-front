@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Bank Sampah Digital</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)">
+    <div class="form-container">
+      <div style="text-align: center; margin-bottom: 2rem">
+        <span style="font-size: 3rem">♻️</span>
+        <h2>Login Bank Sampah</h2>
+        <p style="color: var(--gray)">Masuk ke akun Anda</p>
+      </div>
+
+      <div id="alert-container"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            placeholder="contoh@email.com"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            placeholder="Masukkan password"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%">
+          <span id="btnText">Masuk</span>
+          <span id="btnLoader" style="display: none">⏳ Memproses...</span>
+        </button>
+      </form>
+
+      <div class="form-footer">
+        <p>Belum punya akun? <a href="register.html">Daftar di sini</a></p>
+        <p style="margin-top: 1rem">
+          <a href="index.html">← Kembali ke Beranda</a>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("loginForm");
+      const alertContainer = document.getElementById("alert-container");
+      const btnText = document.getElementById("btnText");
+      const btnLoader = document.getElementById("btnLoader");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        // UI Feedback
+        form.querySelector("button").disabled = true;
+        btnText.style.display = "none";
+        btnLoader.style.display = "inline";
+
+        // FIX 1: Extract data from form correctly
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const payload = { email, password };
+
+        try {
+          // FIX 2: Correct URL and Port
+          const response = await fetch("https://bank-sampah-rxmo.vercel.app/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // FIX 3: Match the token structure from your backend
+            localStorage.setItem("access_token", result.token);
+            showAlert("success", "Login berhasil! Mengalihkan...");
+
+            setTimeout(() => {
+              window.location.href = "dashboard.html";
+            }, 1000);
+          } else {
+            throw new Error(result.message);
+          }
+        } catch (err) {
+          showAlert("error", err.message || "Terjadi kesalahan.");
+          form.querySelector("button").disabled = false;
+          btnText.style.display = "inline";
+          btnLoader.style.display = "none";
+        }
+      });
+
+      function showAlert(type, message) {
+        const alertClass = type === "success" ? "alert-success" : "alert-error";
+        alertContainer.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+        setTimeout(() => (alertContainer.innerHTML = ""), 5000);
+      }
+    </script>
+  </body>
+</html>

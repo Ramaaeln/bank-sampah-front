@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Bank Sampah Digital</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="dashboard">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="container">
+        <nav class="dashboard-nav">
+          <div class="nav-brand">
+            <span class="logo">♻️</span>
+            <span class="brand-name">Bank Sampah Digital</span>
+          </div>
+          <ul class="dashboard-menu">
+            <li><a href="dashboard.html" class="active">Dashboard</a></li>
+            <li><a href="transaksi.html">Transaksi Baru</a></li>
+            <li><a href="penarikan.html">Penarikan</a></li>
+          </ul>
+          <div class="nav-buttons">
+            <span
+              id="userName"
+              style="margin-right: 1rem; font-weight: 600"
+            ></span>
+            <a href="php/logout.php" class="btn btn-outline">Logout</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard-content">
+      <div class="container">
+        <!-- Alert Container -->
+        <div id="alert-container"></div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div
+            class="stat-card"
+            style="background: linear-gradient(135deg, #10b981, #059669)"
+          >
+            <h3 style="color: rgba(255, 255, 255, 0.8)">Saldo Tersedia</h3>
+            <div class="value" id="saldo" style="color: white">Rp 0</div>
+            <p style="color: rgba(255, 255, 255, 0.8); margin-top: 0.5rem">
+              💰 Siap ditarik kapan saja
+            </p>
+          </div>
+
+          <div class="stat-card">
+            <h3>Total Transaksi</h3>
+            <div class="value" id="totalTransaksi" style="color: #3b82f6">
+              0
+            </div>
+            <p style="color: var(--gray); margin-top: 0.5rem">
+              📊 Transaksi berhasil
+            </p>
+          </div>
+
+          <div class="stat-card">
+            <h3>Total Sampah</h3>
+            <div class="value" id="totalBerat" style="color: #f59e0b">0 kg</div>
+            <p style="color: var(--gray); margin-top: 0.5rem">
+              🌍 Kontribusi lingkungan
+            </p>
+          </div>
+
+          <div class="stat-card">
+            <h3>Total Pendapatan</h3>
+            <div class="value" id="totalPendapatan" style="color: #8b5cf6">
+              Rp 0
+            </div>
+            <p style="color: var(--gray); margin-top: 0.5rem">
+              💵 Penghasilan total
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <h3>⚡ Aksi Cepat</h3>
+          </div>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap">
+            <a href="transaksi.html" class="btn btn-primary">
+              📦 Setor Sampah Baru
+            </a>
+            <a href="penarikan.html" class="btn btn-outline">
+              💰 Tarik Saldo
+            </a>
+            <button onclick="loadData()" class="btn btn-outline">
+              🔄 Refresh Data
+            </button>
+          </div>
+        </div>
+
+        <!-- Riwayat Transaksi -->
+        <div class="card">
+          <div class="card-header">
+            <h3>📜 Riwayat Transaksi Terakhir</h3>
+          </div>
+          <div style="overflow-x: auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Jenis Sampah</th>
+                  <th>Kategori</th>
+                  <th>Berat (kg)</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 2rem">
+                    ⏳ Memuat data...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div
+          class="card"
+          style="
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: 2px solid var(--primary);
+          "
+        >
+          <div class="card-header">
+            <h3>💡 Tips Menabung Sampah</h3>
+          </div>
+          <ul style="line-height: 2; color: var(--dark)">
+            <li>✅ Pisahkan sampah berdasarkan jenisnya untuk harga terbaik</li>
+            <li>✅ Bersihkan botol plastik sebelum disetor</li>
+            <li>✅ Ratakan kardus agar lebih mudah ditimbang</li>
+            <li>✅ Kumpulkan sampah hingga minimal 5kg untuk efisiensi</li>
+            <li>✅ Manfaatkan layanan penjemputan gratis kami!</li>
+          </ul>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Load data saat halaman dibuka
+      window.addEventListener("DOMContentLoaded", loadData);
+
+      function logout() {
+        localStorage.removeItem("access_token");
+        window.location.href = "login.html";
+      }
+      async function loadData() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        try {
+          const response = await fetch("https://bank-sampah-rxmo.vercel.app/api/dashboard", {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            if (response.status === 401) logout();
+            throw new Error(result.message);
+          }
+
+          const { user, history } = result;
+
+          // Update UI Elements
+          document.getElementById("userName").textContent = user.nama;
+          document.getElementById("saldo").textContent = user.saldo_formatted;
+
+          // Calculate Stats from History
+          const totalTrx = history.length;
+          const totalKg = history.reduce(
+            (acc, item) => acc + (parseFloat(item.berat) || 0),
+            0
+          );
+          const totalRp = history.reduce(
+            (acc, item) => acc + (parseInt(item.total_harga) || 0),
+            0
+          );
+
+          document.getElementById("totalTransaksi").textContent = totalTrx;
+          document.getElementById(
+            "totalBerat"
+          ).textContent = `${totalKg.toFixed(1)} kg`;
+          document.getElementById(
+            "totalPendapatan"
+          ).textContent = `Rp ${totalRp.toLocaleString("id-ID")}`;
+
+          updateHistoryTable(history);
+        } catch (err) {
+          showAlert("error", err.message || "Gagal memuat data");
+        }
+      }
+      function updateHistoryTable(history) {
+        const tbody = document.getElementById("historyTableBody");
+
+        if (history.length === 0) {
+          tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray);">
+                            📭 Belum ada transaksi. <a href="transaksi.html">Setor sampah sekarang!</a>
+                        </td>
+                    </tr>
+                `;
+          return;
+        }
+
+        tbody.innerHTML = "";
+        history.forEach((item) => {
+          const row = document.createElement("tr");
+
+          // Format tanggal
+          const date = new Date(item.tanggal);
+          const formattedDate = date.toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+
+          // Status badge
+          let statusBadge = "";
+          if (item.status === "Selesai") {
+            statusBadge = '<span class="badge badge-success">✅ Selesai</span>';
+          } else if (item.status === "Pending") {
+            statusBadge = '<span class="badge badge-warning">⏳ Pending</span>';
+          } else {
+            statusBadge =
+              '<span class="badge badge-danger">❌ Dibatalkan</span>';
+          }
+
+          row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${item.nama_sampah}</td>
+                    <td>${item.kategori}</td>
+                    <td>${item.berat} kg</td>
+                    <td>Rp ${formatNumber(item.total_harga)}</td>
+                    <td>${statusBadge}</td>
+                `;
+          tbody.appendChild(row);
+        });
+      }
+
+      function formatNumber(num) {
+        return Number(num).toLocaleString("id-ID");
+      }
+
+      function showAlert(type, message) {
+        const alertContainer = document.getElementById("alert-container");
+        const alertClass = type === "success" ? "alert-success" : "alert-error";
+        alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+
+        setTimeout(() => {
+          alertContainer.innerHTML = "";
+        }, 5000);
+      }
+    </script>
+  </body>
+</html>

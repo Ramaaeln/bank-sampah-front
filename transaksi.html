@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi Baru - Bank Sampah Digital</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard">
+<header class="dashboard-header">
+    <div class="container">
+        <nav class="dashboard-nav">
+            <div class="nav-brand">
+                <span class="logo">♻️</span>
+                <span class="brand-name">Bank Sampah Digital</span>
+            </div>
+            <ul class="dashboard-menu">
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="transaksi.html" class="active">Transaksi Baru</a></li>
+                <li><a href="penarikan.html">Penarikan</a></li>
+            </ul>
+            <div class="nav-buttons">
+                <button id="logoutBtn" class="btn btn-outline">Logout</button>
+            </div>
+        </nav>
+    </div>
+</header>
+
+<main class="dashboard-content">
+    <div class="container">
+        <div id="alert-container"></div>
+
+        <div style="max-width: 800px; margin:0 auto;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📦 Setor Sampah Baru</h3>
+                </div>
+                <form id="transaksiForm">
+                    <div class="form-group">
+                        <label for="jenis_sampah_id">Jenis Sampah</label>
+                        <select id="jenis_sampah_id" name="jenis_sampah_id" required>
+                            <option value="">Memuat data...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="berat">Berat (kg)</label>
+                        <input type="number" id="berat" name="berat" step="0.01" min="0.01" required placeholder="Contoh: 5.5">
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; margin-top:1rem;">
+                        <strong>Harga per kg:</strong> <span id="hargaPerKg">Rp 0</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:1rem;">
+                        <strong>Total:</strong> <span id="totalHarga">Rp 0</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">
+                        <span id="btnText">✅ Konfirmasi Transaksi</span>
+                        <span id="btnLoader" style="display:none;">⏳ Memproses...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    const token = localStorage.getItem('access_token');
+    if(!token) window.location.href = 'login.html';
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('access_token');
+        window.location.href = 'login.html';
+    });
+
+    const alertContainer = document.getElementById('alert-container');
+    const transaksiForm = document.getElementById('transaksiForm');
+    const btnText = document.getElementById('btnText');
+    const btnLoader = document.getElementById('btnLoader');
+
+    let sampahData = [];
+
+    async function loadSampah() {
+    try {
+        const res = await fetch('https://bank-sampah-rxmo.vercel.app/api/sampah', {
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        
+        if(data.success) {
+            // PERBAIKAN: Gunakan data.data secara langsung karena backend 
+            // mengirim: { success: true, data: [...] }
+            sampahData = data.data; 
+            populateSelect(sampahData);
+        } else {
+            showAlert('error', data.message);
+            if(data.message.includes('login')) window.location.href = 'login.html';
+        }
+    } catch(err) {
+        console.error(err); // Untuk debugging di console browser
+        showAlert('error','Gagal memuat data sampah');
+    }
+}
+    function populateSelect(data) {
+        const select = document.getElementById('jenis_sampah_id');
+        select.innerHTML = '<option value="">Pilih jenis sampah...</option>';
+        data.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.nama_sampah} - Rp ${Number(s.harga_per_kg).toLocaleString()}/kg`;
+            opt.dataset.harga = s.harga_per_kg;
+            select.appendChild(opt);
+        });
+    }
+
+    function calculateTotal() {
+        const select = document.getElementById('jenis_sampah_id');
+        const berat = parseFloat(document.getElementById('berat').value) || 0;
+        const selected = select.options[select.selectedIndex];
+        if(selected && selected.dataset.harga) {
+            const harga = parseFloat(selected.dataset.harga);
+            const total = berat * harga;
+            document.getElementById('hargaPerKg').textContent = 'Rp ' + harga.toLocaleString();
+            document.getElementById('totalHarga').textContent = 'Rp ' + total.toLocaleString();
+        }
+    }
+
+    document.getElementById('jenis_sampah_id').addEventListener('change', calculateTotal);
+    document.getElementById('berat').addEventListener('input', calculateTotal);
+
+    transaksiForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        transaksiForm.querySelector('button').disabled = true;
+        btnText.style.display='none';
+        btnLoader.style.display='inline';
+
+        const formData = new FormData(transaksiForm);
+        try {
+            const res = await fetch('https://bank-sampah-rxmo.vercel.app/api/transaksi', {
+                method:'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jenis_sampah_id: formData.get('jenis_sampah_id'),
+                    berat: formData.get('berat')
+                })
+            });
+            const result = await res.json();
+            if(result.success){
+                showAlert('success', result.message);
+                transaksiForm.reset();
+                document.getElementById('hargaPerKg').textContent='Rp 0';
+                document.getElementById('totalHarga').textContent='Rp 0';
+            } else {
+                showAlert('error', result.message);
+            }
+        } catch(err){
+            showAlert('error','Terjadi kesalahan, coba lagi!');
+        }
+        transaksiForm.querySelector('button').disabled = false;
+        btnText.style.display='inline';
+        btnLoader.style.display='none';
+    });
+
+    function showAlert(type,msg){
+        const cls = type==='success'?'alert-success':'alert-error';
+        alertContainer.innerHTML=`<div class="alert ${cls}">${msg}</div>`;
+        setTimeout(()=>alertContainer.innerHTML='',5000);
+    }
+
+    window.addEventListener('DOMContentLoaded', loadSampah);
+</script>
+</body>
+</html>
